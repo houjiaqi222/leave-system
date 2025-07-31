@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>员工请假报备系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        neutral: '#F5F7FA',
+                        danger: '#F53F3F',
+                        success: '#00B42A'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-shadow {
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            }
+            .transition-custom {
+                transition: all 0.3s ease;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800 min-h-screen">
+    <!-- 顶部导航 -->
+    <header class="bg-primary text-white shadow-md">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-calendar-check-o text-2xl" aria-hidden="true"></i>
+                <h1 class="text-xl md:text-2xl font-bold">员工请假报备系统</h1>
+            </div>
+            <nav>
+                <ul class="flex space-x-6">
+                    <li><a href="#leave-form" class="hover:text-secondary transition-custom"><i class="fa fa-pencil-square-o mr-1"></i>请假</a></li>
+                    <li><a href="#cancel-leave" class="hover:text-secondary transition-custom"><i class="fa fa-undo mr-1"></i>销假</a></li>
+                    <li><a href="#records" class="hover:text-secondary transition-custom"><i class="fa fa-list-alt mr-1"></i>记录</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- 状态提示 -->
+        <div id="notification" class="hidden fixed top-20 right-4 max-w-xs p-4 rounded-lg shadow-lg z-50 transition-custom"></div>
+        
+        <!-- 请假表单 -->
+        <section id="leave-form" class="mb-12 bg-white rounded-xl p-6 md:p-8 card-shadow">
+            <h2 class="text-2xl font-bold mb-6 text-primary border-b pb-3">
+                <i class="fa fa-calendar-plus-o mr-2"></i>请假报备
+            </h2>
+            <form id="leaveForm" class="space-y-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700 mb-1">姓名 <span class="text-danger">*</span></label>
+                        <input type="text" id="name" name="name" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom"
+                            placeholder="请输入您的姓名">
+                    </div>
+                    
+                    <div>
+                        <label for="returnTime" class="block text-sm font-medium text-gray-700 mb-1">预计回院时间 <span class="text-danger">*</span></label>
+                        <input type="datetime-local" id="returnTime" name="returnTime" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom">
+                    </div>
+                    
+                    <div>
+                        <label for="contact" class="block text-sm font-medium text-gray-700 mb-1">联系方式 <span class="text-danger">*</span></label>
+                        <input type="tel" id="contact" name="contact" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom"
+                            placeholder="请输入您的联系电话">
+                    </div>
+                    
+                    <div>
+                        <label for="district" class="block text-sm font-medium text-gray-700 mb-1">外出区域（北京市）<span class="text-danger">*</span></label>
+                        <select id="district" name="district" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom">
+                            <option value="">请选择区域</option>
+                            <option value="东城区">东城区</option>
+                            <option value="西城区">西城区</option>
+                            <option value="朝阳区">朝阳区</option>
+                            <option value="丰台区">丰台区</option>
+                            <option value="石景山区">石景山区</option>
+                            <option value="海淀区">海淀区</option>
+                            <option value="顺义区">顺义区</option>
+                            <option value="通州区">通州区</option>
+                            <option value="大兴区">大兴区</option>
+                            <option value="房山区">房山区</option>
+                            <option value="门头沟区">门头沟区</option>
+                            <option value="昌平区">昌平区</option>
+                            <option value="平谷区">平谷区</option>
+                            <option value="密云区">密云区</option>
+                            <option value="怀柔区">怀柔区</option>
+                            <option value="延庆区">延庆区</option>
+                        </select>
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label for="emergencyContact" class="block text-sm font-medium text-gray-700 mb-1">紧急联系人电话 <span class="text-danger">*</span></label>
+                        <input type="tel" id="emergencyContact" name="emergencyContact" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom"
+                            placeholder="请输入紧急联系人电话">
+                    </div>
+                </div>
+                
+                <div class="text-sm text-gray-500 italic pt-2">
+                    出省请走院内流程
+                </div>
+                
+                <div class="pt-3">
+                    <button type="submit" class="bg-primary hover:bg-primary/90 text-white font-medium px-6 py-3 rounded-lg transition-custom flex items-center">
+                        <i class="fa fa-check-circle mr-2"></i>提交请假报备
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- 销假区域 -->
+        <section id="cancel-leave" class="mb-12 bg-white rounded-xl p-6 md:p-8 card-shadow">
+            <h2 class="text-2xl font-bold mb-6 text-primary border-b pb-3">
+                <i class="fa fa-calendar-check-o mr-2"></i>销假登记
+            </h2>
+            
+            <div id="activeLeaves" class="mb-6">
+                <h3 class="text-lg font-semibold mb-4">当前未销假记录</h3>
+                <div id="activeLeavesList" class="space-y-4">
+                    <!-- 动态生成的未销假记录 -->
+                    <div class="text-gray-500 italic" id="noActiveLeaves">暂无未销假记录</div>
+                </div>
+            </div>
+            
+            <div class="text-sm text-gray-500 italic pt-2 hidden" id="returnReminder">
+                别忘记在群里回复安全哦，老师们在等你们平安归来
+            </div>
+        </section>
+
+        <!-- 记录查询 -->
+        <section id="records" class="mb-12 bg-white rounded-xl p-6 md:p-8 card-shadow">
+            <h2 class="text-2xl font-bold mb-6 text-primary border-b pb-3">
+                <i class="fa fa-history mr-2"></i>请假销假记录
+            </h2>
+            
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div class="flex space-x-2">
+                    <button id="filterAll" class="px-4 py-2 bg-primary text-white rounded-lg transition-custom">全部</button>
+                    <button id="filterActive" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-custom">未销假</button>
+                    <button id="filterCancelled" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-custom">已销假</button>
+                </div>
+                
+                <div class="w-full md:w-auto">
+                    <div class="relative">
+                        <input type="text" id="searchRecords" placeholder="搜索姓名..."
+                            class="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom">
+                        <i class="fa fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">序号</th>
+                            <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名</th>
+                            <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">外出区域</th>
+                            <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">请假时间</th>
+                            <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">预计回院时间</th>
+                            <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">销假时间</th>
+                            <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- 动态生成的记录 -->
+                        <tr>
+                            <td colspan="7" class="px-4 py-8 text-center text-gray-500 italic">暂无记录</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 访问二维码 -->
+        <section class="mb-12 bg-white rounded-xl p-6 md:p-8 card-shadow text-center">
+            <h2 class="text-2xl font-bold mb-6 text-primary border-b pb-3">
+                <i class="fa fa-qrcode mr-2"></i>快速访问二维码
+            </h2>
+            <p class="mb-4 text-gray-600">扫描下方二维码，在手机上访问本系统</p>
+            <div class="flex justify-center">
+                <div id="qrcode" class="border-4 border-gray-100 p-4 rounded-lg"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2023 员工请假报备系统 - 所有记录保存在本地浏览器中</p>
+            <p class="mt-2 text-sm text-gray-400">数据仅保存在您的设备上，请定期备份重要信息</p>
+        </div>
+    </footer>
+
+    <script>
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置默认时间为当前时间
+            const now = new Date();
+            const formattedDateTime = now.toISOString().slice(0, 16);
+            document.getElementById('returnTime').value = formattedDateTime;
+            
+            // 加载记录
+            loadRecords();
+            
+            // 生成二维码
+            generateQRCode();
+            
+            // 表单提交事件
+            document.getElementById('leaveForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitLeave();
+            });
+            
+            // 筛选按钮事件
+            document.getElementById('filterAll').addEventListener('click', function() {
+                setActiveFilter('all');
+                loadRecords();
+            });
+            
+            document.getElementById('filterActive').addEventListener('click', function() {
+                setActiveFilter('active');
+                loadRecords(true);
+            });
+            
+            document.getElementById('filterCancelled').addEventListener('click', function() {
+                setActiveFilter('cancelled');
+                loadRecords(false);
+            });
+            
+            // 搜索事件
+            document.getElementById('searchRecords').addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                filterRecordsBySearch(searchTerm);
+            });
+        });
+        
+        // 生成访问二维码
+        function generateQRCode() {
+            const url = window.location.href;
+            new QRCode(document.getElementById("qrcode"), {
+                text: url,
+                width: 180,
+                height: 180,
+                colorDark: "#333333",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+        
+        // 提交请假信息
+        function submitLeave() {
+            // 获取表单数据
+            const name = document.getElementById('name').value;
+            const returnTime = document.getElementById('returnTime').value;
+            const contact = document.getElementById('contact').value;
+            const district = document.getElementById('district').value;
+            const emergencyContact = document.getElementById('emergencyContact').value;
+            
+            // 创建请假记录
+            const leaveRecord = {
+                id: Date.now().toString(), // 使用时间戳作为唯一ID
+                name: name,
+                returnTime: returnTime,
+                contact: contact,
+                district: district,
+                emergencyContact: emergencyContact,
+                leaveTime: new Date().toISOString(),
+                cancelTime: null,
+                status: 'active' // active: 未销假, cancelled: 已销假
+            };
+            
+            // 保存到本地存储
+            saveRecord(leaveRecord);
+            
+            // 重置表单
+            document.getElementById('leaveForm').reset();
+            document.getElementById('returnTime').value = new Date().toISOString().slice(0, 16);
+            
+            // 显示通知
+            showNotification('请假报备提交成功！', 'success');
+            
+            // 重新加载记录
+            loadRecords();
+        }
+        
+        // 保存记录到本地存储
+        function saveRecord(record) {
+            let records = JSON.parse(localStorage.getItem('leaveRecords') || '[]');
+            records.push(record);
+            localStorage.setItem('leaveRecords', JSON.stringify(records));
+        }
+        
+        // 更新记录
+        function updateRecord(id, updates) {
+            let records = JSON.parse(localStorage.getItem('leaveRecords') || '[]');
+            const index = records.findIndex(record => record.id === id);
+            
+            if (index !== -1) {
+                records[index] = { ...records[index], ...updates };
+                localStorage.setItem('leaveRecords', JSON.stringify(records));
+                return true;
+            }
+            
+            return false;
+        }
+        
+        // 加载记录并显示
+        function loadRecords(showActiveOnly = null) {
+            let records = JSON.parse(localStorage.getItem('leaveRecords') || '[]');
+            
+            // 按时间排序（最新的在前）
+            records.sort((a, b) => new Date(b.leaveTime) - new Date(a.leaveTime));
+            
+            // 筛选记录
+            let filteredRecords = records;
+            if (showActiveOnly !== null) {
+                filteredRecords = records.filter(record => 
+                    showActiveOnly ? record.status === 'active' : record.status === 'cancelled'
+                );
+            }
+            
+            // 更新记录表格
+            updateRecordsTable(filteredRecords);
+            
+            // 更新未销假列表
+            updateActiveLeavesList(records.filter(record => record.status === 'active'));
+        }
+        
+        // 更新记录表格
+        function updateRecordsTable(records) {
+            const tableBody = document.getElementById('recordsTableBody');
+            
+            if (records.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-gray-500 italic">暂无记录</td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tableBody.innerHTML = '';
+            
+            records.forEach((record, index) => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 transition-custom';
+                
+                // 格式化日期时间
+                const leaveTimeFormatted = formatDateTime(record.leaveTime);
+                const returnTimeFormatted = formatDateTime(record.returnTime);
+                const cancelTimeFormatted = record.cancelTime ? formatDateTime(record.cancelTime) : '-';
+                
+                // 状态标签
+                let statusLabel = '';
+                if (record.status === 'active') {
+                    statusLabel = '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">未销假</span>';
+                } else {
+                    statusLabel = '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">已销假</span>';
+                }
+                
+                row.innerHTML = `
+                    <td class="px-4 py-4 whitespace-nowrap">${index + 1}</td>
+                    <td class="px-4 py-4 whitespace-nowrap font-medium">${record.name}</td>
+                    <td class="px-4 py-4 whitespace-nowrap">${record.district}</td>
+                    <td class="px-4 py-4 whitespace-nowrap">${leaveTimeFormatted}</td>
+                    <td class="px-4 py-4 whitespace-nowrap">${returnTimeFormatted}</td>
+                    <td class="px-4 py-4 whitespace-nowrap">${cancelTimeFormatted}</td>
+                    <td class="px-4 py-4 whitespace-nowrap">${statusLabel}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // 更新未销假列表
+        function updateActiveLeavesList(activeLeaves) {
+            const listContainer = document.getElementById('activeLeavesList');
+            
+            if (activeLeaves.length === 0) {
+                listContainer.innerHTML = '<div class="text-gray-500 italic">暂无未销假记录</div>';
+                return;
+            }
+            
+            listContainer.innerHTML = '';
+            
+            activeLeaves.forEach(leave => {
+                const leaveCard = document.createElement('div');
+                leaveCard.className = 'border border-gray-200 rounded-lg p-4 hover:shadow-md transition-custom';
+                
+                const leaveTimeFormatted = formatDateTime(leave.leaveTime);
+                const returnTimeFormatted = formatDateTime(leave.returnTime);
+                
+                leaveCard.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <h4 class="font-semibold text-lg">${leave.name}</h4>
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">未销假</span>
+                    </div>
+                    <div class="text-sm text-gray-600 space-y-1 mb-4">
+                        <p><span class="font-medium">外出区域：</span>${leave.district}</p>
+                        <p><span class="font-medium">请假时间：</span>${leaveTimeFormatted}</p>
+                        <p><span class="font-medium">预计回院：</span>${returnTimeFormatted}</p>
+                        <p><span class="font-medium">联系方式：</span>${leave.contact}</p>
+                    </div>
+                    <button onclick="cancelLeave('${leave.id}')" class="w-full bg-success hover:bg-success/90 text-white text-sm font-medium px-4 py-2 rounded-lg transition-custom">
+                        <i class="fa fa-check mr-1"></i>确认销假
+                    </button>
+                `;
+                
+                listContainer.appendChild(leaveCard);
+            });
+        }
+        
+        // 销假处理
+        function cancelLeave(id) {
+            if (confirm('确定要销假吗？')) {
+                const success = updateRecord(id, {
+                    status: 'cancelled',
+                    cancelTime: new Date().toISOString()
+                });
+                
+                if (success) {
+                    showNotification('销假成功！', 'success');
+                    document.getElementById('returnReminder').classList.remove('hidden');
+                    
+                    // 3秒后隐藏提示
+                    setTimeout(() => {
+                        document.getElementById('returnReminder').classList.add('hidden');
+                    }, 5000);
+                    
+                    // 重新加载记录
+                    loadRecords(getActiveFilter() === 'active');
+                } else {
+                    showNotification('销假失败，请重试', 'error');
+                }
+            }
+        }
+        
+        // 显示通知
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.remove('hidden', 'bg-green-500', 'bg-red-500', 'bg-blue-500');
+            
+            // 设置通知类型样式
+            if (type === 'success') {
+                notification.classList.add('bg-green-500');
+            } else if (type === 'error') {
+                notification.classList.add('bg-red-500');
+            } else {
+                notification.classList.add('bg-blue-500');
+            }
+            
+            // 显示通知
+            notification.classList.add('transform', 'translate-y-0');
+            notification.classList.remove('translate-y-[-20px]', 'opacity-0');
+            
+            // 3秒后隐藏
+            setTimeout(() => {
+                notification.classList.add('opacity-0');
+                setTimeout(() => {
+                    notification.classList.add('hidden');
+                }, 300);
+            }, 3000);
+        }
+        
+        // 格式化日期时间
+        function formatDateTime(dateTimeString) {
+            const date = new Date(dateTimeString);
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        // 设置活跃的筛选器
+        function setActiveFilter(filterType) {
+            // 重置所有按钮样式
+            document.getElementById('filterAll').className = 'px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-custom';
+            document.getElementById('filterActive').className = 'px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-custom';
+            document.getElementById('filterCancelled').className = 'px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-custom';
+            
+            // 设置当前筛选器样式
+            if (filterType === 'all') {
+                document.getElementById('filterAll').className = 'px-4 py-2 bg-primary text-white rounded-lg transition-custom';
+            } else if (filterType === 'active') {
+                document.getElementById('filterActive').className = 'px-4 py-2 bg-primary text-white rounded-lg transition-custom';
+            } else if (filterType === 'cancelled') {
+                document.getElementById('filterCancelled').className = 'px-4 py-2 bg-primary text-white rounded-lg transition-custom';
+            }
+            
+            // 保存当前筛选器状态
+            localStorage.setItem('activeFilter', filterType);
+        }
+        
+        // 获取当前活跃的筛选器
+        function getActiveFilter() {
+            return localStorage.getItem('activeFilter') || 'all';
+        }
+        
+        // 根据搜索词筛选记录
+        function filterRecordsBySearch(searchTerm) {
+            let records = JSON.parse(localStorage.getItem('leaveRecords') || '[]');
+            
+            // 按时间排序
+            records.sort((a, b) => new Date(b.leaveTime) - new Date(a.leaveTime));
+            
+            // 应用当前筛选器
+            const activeFilter = getActiveFilter();
+            let filteredRecords = records;
+            
+            if (activeFilter === 'active') {
+                filteredRecords = records.filter(record => record.status === 'active');
+            } else if (activeFilter === 'cancelled') {
+                filteredRecords = records.filter(record => record.status === 'cancelled');
+            }
+            
+            // 应用搜索筛选
+            if (searchTerm) {
+                filteredRecords = filteredRecords.filter(record => 
+                    record.name.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            // 更新表格
+            updateRecordsTable(filteredRecords);
+        }
+    </script>
+</body>
+</html>
